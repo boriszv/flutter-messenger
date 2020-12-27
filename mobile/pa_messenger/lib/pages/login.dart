@@ -25,7 +25,7 @@ class Login extends StatelessWidget {
 
             PrimaryButton(
               onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil('/conversations', (_) => false);
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
               },
               minWidth: double.infinity,
               text: 'Verify',
