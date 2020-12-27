@@ -30,7 +30,7 @@ class _AppContainerState extends State<AppContainer> {
           case 2:
             return Profile();
           default:
-            return ConversationList();
+            throw new Exception('Unknown page with index ' + selectedIndex.toString());
         }
       }),
     );
