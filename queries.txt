@@ -1,0 +1,12 @@
+getAllConversationsForUser() {
+  db.collection('conversations')
+    .where('userIds', 'array-contains', this.currentUserId)
+    .orderBy('latestMessageTimestamp', desc: true)
+    .take(10);
+}
+
+getMessagesForConversation(conversationId) {
+  db.collection(`conversations/${conversationId}/messages`)
+    .orderBy('sent', desc: true)
+    .take(15);
+}

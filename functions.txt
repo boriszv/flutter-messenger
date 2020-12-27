@@ -1,0 +1,16 @@
+onMessageCreated(conversationId, messageId, body, createdAt) {
+  await db.runTransaction(async (transaction) => {
+    const messageRef = db.doc(`conversations/${conversationId}/messages/{messageId}`);
+    transaction.update(messageRef, {
+      ...body,
+      timestamp: createdAt
+    });
+
+    const conversationRef = db.doc('conversations/${conversationId});
+    transaction.update(conversationRef, {
+      latestMessage: body.messageText,
+      latestMessageTimestamp: createdAt,
+      latestMessageSentBy: body.userId
+    });
+  });
+}

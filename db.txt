@@ -1,0 +1,38 @@
+users [
+  uid: {
+    phoneNumber: '+38163716551324',
+    name: 'Dragan Petrovic',
+    bio: 'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et.'
+  }
+]
+
+conversations: [
+  id: {
+    users(array): [
+      {
+        userId: '',
+        userName: 'name',
+        userImage: 'img'
+      },
+      {
+        userId: '',
+        userName: 'name',
+        userImage: 'img'
+      }
+    ],
+    userIds(array of ids): [],
+
+    latestMessage: 'messages',
+    latestMessageTimestamp: '',
+    latestMessageSentBy: 'userid'
+
+    messages(subocllection): [
+      id: {
+        messageText: '',
+        imageUrl: '',
+        sent: '',
+        userId: ''
+      }
+    ]
+  }
+]
