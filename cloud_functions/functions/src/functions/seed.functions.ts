@@ -1,9 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as faker from 'faker';
-import { User } from './models/user';
-import { Message } from './models/message';
-import { Conversation } from './models/conversation';
+import { User } from '../models/user';
+import { Message } from '../models/message';
+import { Conversation } from '../models/conversation';
 
 admin.initializeApp();
 const db = admin.firestore();
