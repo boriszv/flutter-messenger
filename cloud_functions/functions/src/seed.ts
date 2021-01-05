@@ -1,6 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as faker from 'faker';
+import { User } from './models/user';
+import { Message } from './models/message';
+import { Conversation } from './models/conversation';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -24,8 +27,7 @@ const seedUsers = async () => {
 
 
 const seedConversations = async (ids: string[]) : Promise<string[]> => {
-  const reference = db.collection('conversations').doc();
-  await reference.set({
+  const conversationToInsert: Conversation = {
     users: [
       {
         userId: ids[0],
@@ -37,7 +39,10 @@ const seedConversations = async (ids: string[]) : Promise<string[]> => {
       }
     ],
     userIds: [...ids],
-  });
+  };
+
+  const reference = db.collection('conversations').doc();
+  await reference.set(conversationToInsert);
 
   return [reference.id];
 };
@@ -47,13 +52,14 @@ const seedMessages = async (userIds: string[], conversationIds: string[]) : Prom
   const messageIds = [];
 
   for (const userId of userIds) {
-    const reference = db.collection(`conversations/${conversationIds[0]}/messages`);
-    await reference.add({
+    const messageToInsert: Message = {
       messageText: faker.lorem.text(),
       imageUrl: faker.image.imageUrl(),
-      sent: admin.database.ServerValue.TIMESTAMP,
       userId: userId
-    });
+    };
+
+    const reference = db.collection(`conversations/${conversationIds[0]}/messages`);
+    await reference.add(messageToInsert);
     messageIds.push(reference.id);
   }
 
@@ -68,13 +74,12 @@ const createUser = async (name: string, phoneNumber: string) : Promise<string> =
     password: 'pass123'
   });
 
-  await db.collection('users')
-    .doc(createdUser.uid)
-    .set({
-      phoneNumber: phoneNumber,
-      name: name,
-      bio: 'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et.'
-    });
+  const userToInsert: User = {
+    phoneNumber: phoneNumber,
+    name: name,
+    bio: 'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et.'
+  };
 
+  await db.collection('users').doc(createdUser.uid).set(userToInsert);
   return createdUser.uid;
 };
