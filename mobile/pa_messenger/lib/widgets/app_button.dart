@@ -6,18 +6,20 @@ class PrimaryButton extends StatelessWidget {
   final double minWidth;
   final String text;
   final double borderRadius;
+  final bool disabled;
 
   PrimaryButton({
     @required this.onPressed,
     this.minWidth,
     this.text,
-    this.borderRadius
+    this.borderRadius,
+    this.disabled = false
   });
 
   @override
   Widget build(BuildContext context) {
     return MaterialButton(
-      onPressed: onPressed,
+      onPressed: disabled ? null : onPressed,
       elevation: 0,
       focusElevation: 0,
       highlightElevation: 0,

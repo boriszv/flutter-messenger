@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppTextField extends StatelessWidget {
 
+  final TextEditingController controller;
   final String labelText;
   final String hintText;
   final TextInputType keyboardType;
@@ -16,12 +17,14 @@ class AppTextField extends StatelessWidget {
     this.keyboardType,
     this.minLines = 1,
     this.maxLines,
-    this.alignLabelWithHint = false
+    this.alignLabelWithHint = false,
+    this.controller
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       cursorColor: Theme.of(context).cursorColor,
       keyboardType: keyboardType,
       minLines: minLines,
