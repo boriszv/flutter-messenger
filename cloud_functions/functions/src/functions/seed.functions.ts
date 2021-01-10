@@ -39,44 +39,43 @@ const seedConversationsAndMessages = async (users: UserWithId[]): Promise<Conver
   users.shift();
 
   const conversationsToReturn: ConversationWithId[] = [];
+  const conversationPromises = [];
+  const messagePromises = [];
 
   for (const user of users) {
     const conversationToInsert: Conversation = {
       users: [
-        {
-          userId: mainUser.uid,
-          userName: mainUser.name,
-          imageUrl: mainUser.imageUrl,
-        },
-        {
-          userId: user.uid,
-          userName: user.name,
-          imageUrl: user.imageUrl,
-        }
+        { userId: mainUser.uid, userName: mainUser.name, imageUrl: mainUser.imageUrl },
+        { userId: user.uid, userName: user.name, imageUrl: user.imageUrl }
       ],
       userIds: [mainUser.uid, user.uid],
     };
 
     const conversationReference = db.collection('conversations').doc();
-    await conversationReference.set(conversationToInsert);
-
+    conversationPromises.push(conversationReference.set(conversationToInsert));
     conversationsToReturn.push(ConversationWithId.fromBase(conversationReference.id, conversationToInsert));
+  }
 
-    // Seed messages for created conversation
+  await Promise.all(conversationPromises);
+
+  for (const conversation of conversationsToReturn) {
+    const otherUserId = conversation.userIds.find(x => x !== mainUser.uid);
+    if (!otherUserId) continue;
 
     let messageCount = randomInt(15, 80);
     while (messageCount--) {
       const messageToInsert: Message = {
-        userId: randomBool() ? mainUser.uid : user.uid,
+        userId: randomBool() ? mainUser.uid : otherUserId,
         imageUrl: randomInt(1, 21) > 15 ? faker.image.imageUrl() : '',
         messageText: faker.lorem.sentence(randomInt(5, 22)),
       };
 
-      const messageReference = db.collection(`conversations/${conversationReference.id}/messages`).doc();
-      await messageReference.set(messageToInsert)
+      const messageReference = db.collection(`conversations/${conversation.uid}/messages`).doc();
+      messagePromises.push(messageReference.set(messageToInsert));
     }
   }
 
+  await Promise.all(messagePromises);
   return conversationsToReturn;
 };
 
