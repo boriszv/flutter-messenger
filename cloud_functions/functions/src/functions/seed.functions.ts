@@ -1,74 +1,82 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as faker from 'faker';
-import { User } from '../models/user';
+import { User, UserWithId } from '../models/user';
 import { Message } from '../models/message';
-import { Conversation } from '../models/conversation';
+import { Conversation, ConversationWithId } from '../models/conversation';
 
 admin.initializeApp();
 const db = admin.firestore();
 const auth = admin.auth();
 
 export const seedData = functions.https.onRequest(async (req, res) => {
-  const userIds = await seedUsers();
-  const conversationIds = await seedConversations(userIds);
-  await seedMessages(userIds, conversationIds);
+  const users = await seedUsers();
+  await seedConversationsAndMessages(users);
 
   res.send();
 });
 
 
 const seedUsers = async () => {
-  return await Promise.all([
-    createUser('Mike Jones', '+1 203-773-2516'),
-    createUser('Dwayne Carter', '+1 412-923-1733'),
-  ]);
-};
+  const promises = [createUser('Boris Zivkovic', '+1 202-555-0155')];
 
-
-const seedConversations = async (ids: string[]) : Promise<string[]> => {
-  const conversationToInsert: Conversation = {
-    users: [
-      {
-        userId: ids[0],
-        userName: 'Mike Jones',
-      },
-      {
-        userId: ids[1],
-        userName: 'Dwayne Carter',
-      }
-    ],
-    userIds: [...ids],
-  };
-
-  const reference = db.collection('conversations').doc();
-  await reference.set(conversationToInsert);
-
-  return [reference.id];
-};
-
-
-const seedMessages = async (userIds: string[], conversationIds: string[]) : Promise<string[]> => {
-  const messageIds = [];
-
-  for (const userId of userIds) {
-    const messageToInsert: Message = {
-      messageText: faker.lorem.text(),
-      imageUrl: faker.image.imageUrl(),
-      userId: userId
-    };
-
-    const reference = db.collection(`conversations/${conversationIds[0]}/messages`);
-    await reference.add(messageToInsert);
-    messageIds.push(reference.id);
+  let userCount = 15;
+  while (userCount--) {
+    promises.push(createUser(`${faker.name.firstName()} ${faker.name.lastName()}`, faker.phone.phoneNumber('+1 !##-!##-####')));
   }
 
-  return messageIds;
+  return await Promise.all(promises);
 };
 
 
-const createUser = async (name: string, phoneNumber: string) : Promise<string> => {
-  const createdUser = await auth.createUser({
+const seedConversationsAndMessages = async (users: UserWithId[]): Promise<ConversationWithId[]> => {
+  const mainUser = users[0]; // our user - Boris
+  users.shift();
+
+  const conversationsToReturn: ConversationWithId[] = [];
+
+  for (const user of users) {
+    const conversationToInsert: Conversation = {
+      users: [
+        {
+          userId: mainUser.uid,
+          userName: mainUser.name,
+          imageUrl: mainUser.imageUrl,
+        },
+        {
+          userId: user.uid,
+          userName: user.name,
+          imageUrl: user.imageUrl,
+        }
+      ],
+      userIds: [mainUser.uid, user.uid],
+    };
+
+    const conversationReference = db.collection('conversations').doc();
+    await conversationReference.set(conversationToInsert);
+
+    conversationsToReturn.push(ConversationWithId.fromBase(conversationReference.id, conversationToInsert));
+
+    // Seed messages for created conversation
+
+    let messageCount = randomInt(15, 80);
+    while (messageCount--) {
+      const messageToInsert: Message = {
+        userId: randomBool() ? mainUser.uid : user.uid,
+        imageUrl: randomInt(1, 21) > 15 ? faker.image.imageUrl() : '',
+        messageText: faker.lorem.sentence(randomInt(5, 22)),
+      };
+
+      const messageReference = db.collection(`conversations/${conversationReference.id}/messages`).doc();
+      await messageReference.set(messageToInsert)
+    }
+  }
+
+  return conversationsToReturn;
+};
+
+const createUser = async (name: string, phoneNumber: string): Promise<UserWithId> => {
+  const authUser = await auth.createUser({
     phoneNumber: phoneNumber,
     displayName: name,
     password: 'pass123'
@@ -77,9 +85,13 @@ const createUser = async (name: string, phoneNumber: string) : Promise<string> =
   const userToInsert: User = {
     phoneNumber: phoneNumber,
     name: name,
-    bio: 'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et.'
+    imageUrl: faker.image.imageUrl(),
+    bio: faker.lorem.sentences(3)
   };
 
-  await db.collection('users').doc(createdUser.uid).set(userToInsert);
-  return createdUser.uid;
+  await db.collection('users').doc(authUser.uid).set(userToInsert);
+  return UserWithId.fromBase(authUser.uid, userToInsert);
 };
+
+const randomBool = () => Math.floor(Math.random() * 2);
+const randomInt = (min: number = 0, max: number = 100) => Math.floor(Math.random() * (max - min) + min);
