@@ -10,10 +10,15 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 export const seedData = functions.https.onRequest(async (req, res) => {
+  if ((await db.collection('users').get()).docs.length > 0) {
+    res.send({ success: false, error: 'There is already data in the database' });
+    return;
+  }
+
   const users = await seedUsers();
   await seedConversationsAndMessages(users);
 
-  res.send();
+  res.send({ success: true });
 });
 
 
