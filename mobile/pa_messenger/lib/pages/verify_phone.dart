@@ -9,9 +9,16 @@ class VerifyPhoneArgs {
   VerifyPhoneArgs(this.verificationId);
 }
 
-class VerifyPhone extends StatelessWidget {
+class VerifyPhone extends StatefulWidget {
+
+  @override
+  _VerifyPhoneState createState() => _VerifyPhoneState();
+}
+
+class _VerifyPhoneState extends State<VerifyPhone> {
 
   final _codeController = TextEditingController();
+  bool showLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +41,13 @@ class VerifyPhone extends StatelessWidget {
 
             Container(height: 15),
 
-            PrimaryButton(
-              onPressed: () => _verifyCode(context),
-              minWidth: double.infinity,
-              text: 'Verify',
-            )
+            showLoading
+              ? CircularProgressIndicator()
+              : PrimaryButton(
+                onPressed: () => _verifyCode(context),
+                minWidth: double.infinity,
+                text: 'Verify',
+              )
           ],
         ),
       ),
@@ -50,6 +59,8 @@ class VerifyPhone extends StatelessWidget {
       return;
     }
 
+    setState(() { showLoading = true; });
+
     final args = ModalRoute.of(context).settings.arguments as VerifyPhoneArgs;
     final credential = PhoneAuthProvider.credential(verificationId: args.verificationId, smsCode: _codeController.text);
 
@@ -60,6 +71,9 @@ class VerifyPhone extends StatelessWidget {
     } on FirebaseAuthException catch (e) {
       await showOkDialog(context, title: 'An error occurred', content: e.message);
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+  
+    } finally {
+      setState(() { showLoading = false; });
     }
   }
 }
