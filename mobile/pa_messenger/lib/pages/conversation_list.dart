@@ -14,7 +14,7 @@ class _ConversationListState extends State<ConversationList> {
 
   List<Conversation> conversations = [];
   bool showLoading = false;
-  bool showLoadingMore = false;
+  bool isLoadingMore = false;
   bool loadedAll = false;
 
   QueryDocumentSnapshot lastDocument;
@@ -53,7 +53,7 @@ class _ConversationListState extends State<ConversationList> {
   }
 
   Future<void> _fetchMoreConversations() async {
-    setState(() { showLoadingMore = true; });
+    setState(() { isLoadingMore = true; });
 
     final result = await _buildQuery(startAfter: lastDocument).get();
     final newConversations = Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
@@ -66,7 +66,7 @@ class _ConversationListState extends State<ConversationList> {
       } else {
         loadedAll = true;
       }
-      showLoadingMore = false;
+      isLoadingMore = false;
     });
   }
 
@@ -94,7 +94,7 @@ class _ConversationListState extends State<ConversationList> {
 
           return NotificationListener<ScrollNotification>(
             onNotification: (scrollInfo) {
-              if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent && !showLoadingMore && !loadedAll) {
+              if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent && !isLoadingMore && !loadedAll) {
                 _fetchMoreConversations();
               }
             },
