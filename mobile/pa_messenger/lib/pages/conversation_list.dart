@@ -4,17 +4,70 @@ import 'package:flutter/material.dart';
 import 'package:pa_messenger/models/conversation.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 
-class ConversationList extends StatelessWidget {
+class ConversationList extends StatefulWidget {
 
-  Future<List<Conversation>> _buildQuery() async {
-    final result = await FirebaseFirestore.instance
+  @override
+  _ConversationListState createState() => _ConversationListState();
+}
+
+class _ConversationListState extends State<ConversationList> {
+
+  List<Conversation> conversations = [];
+  bool showLoading = false;
+  bool showLoadingMore = false;
+  bool loadedAll = false;
+
+  QueryDocumentSnapshot lastDocument;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchConversations();
+  }
+
+  Query _buildQuery({QueryDocumentSnapshot startAfter}) {
+    var query = FirebaseFirestore.instance
       .collection('conversations')
       .where('userIds', arrayContains: FirebaseAuth.instance.currentUser.uid)
-      .orderBy('latestMessageTimestamp', descending: true)
-      .limit(10)
-      .get();
+      .orderBy('latestMessageTimestamp', descending: true);
+    
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
 
-    return Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
+    return query.limit(10);
+  }
+
+  Future<void> _fetchConversations() async {
+    setState(() { showLoading = true; });
+
+    final result = await _buildQuery().get();
+
+    setState(() {
+      conversations = Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
+      if (conversations.length != 0) {
+        lastDocument = result.docs.last;
+      }
+      showLoading = false;
+    });
+  }
+
+  Future<void> _fetchMoreConversations() async {
+    setState(() { showLoadingMore = true; });
+
+    final result = await _buildQuery(startAfter: lastDocument).get();
+    final newConversations = Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
+
+    setState(() {
+      if (newConversations.length != 0) {
+        conversations.addAll(newConversations);
+        lastDocument = result.docs.last;
+
+      } else {
+        loadedAll = true;
+      }
+      showLoadingMore = false;
+    });
   }
 
   @override
@@ -33,24 +86,31 @@ class ConversationList extends StatelessWidget {
           )
         ],
       ),
-      body: FutureBuilder<List<Conversation>>(
-        future: _buildQuery(),
-        builder: (context, state) {
-          if (state.connectionState == ConnectionState.waiting || state.connectionState == ConnectionState.active) {
+      body: Builder(
+        builder: (context) {
+          if (showLoading) {
             return Center(child: CircularProgressIndicator());
           }
 
-          final list = state.data;
-
-          return ListView.builder(
-            itemBuilder: (context, index) {
-              return _ConversationListItem(list[index]);
+          return NotificationListener<ScrollNotification>(
+            onNotification: (scrollInfo) {
+              if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent && !showLoadingMore && !loadedAll) {
+                _fetchMoreConversations();
+              }
             },
-            itemCount: list.length,
+            child: ListView.builder(
+              itemBuilder: (context, index) {
+                if (index != conversations.length) {
+                  return _ConversationListItem(conversations[index]);
+                }
+
+                return Center(child: CircularProgressIndicator());
+              },
+              itemCount: loadedAll ? conversations.length : conversations.length + 1,
+            ),
           );
         },
       ),
-      
     );
   }
 }
