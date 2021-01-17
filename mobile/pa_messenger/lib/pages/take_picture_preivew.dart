@@ -22,7 +22,7 @@ class TakePicturePreview extends StatelessWidget {
         color: Colors.grey.shade900,
         child: Stack(
           children: [
-            Image.file(File(args.imagePath), fit: BoxFit.cover,),
+            Center(child: Image.file(File(args.imagePath), fit: BoxFit.cover,)),
 
             Container(
               alignment: Alignment.bottomCenter,

@@ -1,20 +1,27 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:pa_messenger/pages/take_picture_preivew.dart';
+import 'package:pa_messenger/services/iimage_compressing_service.dart';
+import 'package:pa_messenger/services/image_compressing_service.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:image_cropper/image_cropper.dart';
+
+class TakePictureArgs {
+  final bool cropImage;
+
+  TakePictureArgs({this.cropImage});
+}
 
 class TakePicture extends StatefulWidget {
-
-  const TakePicture({
-    Key key,
-  }) : super(key: key);
 
   @override
   TakePictureState createState() => TakePictureState();
 }
 
 class TakePictureState extends State<TakePicture> {
+
+  static final IImageCompressingService _imageCompressor = ImageCompressingService();
 
   CameraController _controller;
   Future<void> _initializeControllerFuture;
@@ -59,6 +66,37 @@ class TakePictureState extends State<TakePicture> {
     setState(() { _initializeControllerFuture = _controller.initialize(); });
   }
 
+  _takePicture(BuildContext context) async {
+    try {
+      await _initializeControllerFuture;
+
+      var path = join((await getTemporaryDirectory()).path, '${DateTime.now()}.png');
+      await _controller.takePicture(path);
+
+      final args = ModalRoute.of(context).settings.arguments as TakePictureArgs;
+
+      if (args.cropImage) {
+        final fileResult = await ImageCropper.cropImage(sourcePath: path, aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1));
+        if (fileResult == null) {
+          return;
+        }
+        path = fileResult.path;
+      }
+
+      path = (await _imageCompressor.compressImagePath(path, 50)).path;
+
+      final result = await Navigator.of(context).pushNamed('/take-picture-preview', arguments: TakePicturePreviewArgs(path));
+
+      if (result != null && result) {
+        Navigator.of(context).pop(path);
+        return;
+      }
+
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,23 +127,7 @@ class TakePictureState extends State<TakePicture> {
   _floatingButton(BuildContext context) {
     return FloatingActionButton(
       child: Icon(Icons.camera_alt),
-      onPressed: () async {
-        try {
-          await _initializeControllerFuture;
-          final path = join((await getTemporaryDirectory()).path, '${DateTime.now()}.png');
-          await _controller.takePicture(path);
-
-          final result = await Navigator.of(context).pushNamed('/take-picture-preview', arguments: TakePicturePreviewArgs(path));
-
-          if (result) {
-            Navigator.of(context).pop(path);
-            return;
-          }
-
-        } catch (e) {
-          print(e);
-        }
-      },
+      onPressed: () { _takePicture(context); },
     );
   }
 

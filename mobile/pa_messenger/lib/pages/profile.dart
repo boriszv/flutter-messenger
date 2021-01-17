@@ -2,9 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pa_messenger/models/appUser.dart';
+import 'package:pa_messenger/pages/take_picture.dart';
+import 'package:pa_messenger/services/file_uploading_service.dart';
+import 'package:pa_messenger/services/ifile_uploading_service.dart';
 import 'package:pa_messenger/widgets/app_button.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 import 'package:pa_messenger/widgets/app_text_field.dart';
+import 'package:path/path.dart' as p;
 
 class Profile extends StatefulWidget {
 
@@ -14,12 +18,16 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
 
+  static final IFileUploadingService _fileUploadingService = FileUploadingService();
+
   final _nameController = TextEditingController();
   final _aboutMeController = TextEditingController();
 
   String imageUrl;
   var showLoading = false;
   var showSaving = false;
+
+  get currentUserId => FirebaseAuth.instance.currentUser.uid;
 
   @override
   void initState() {
@@ -28,7 +36,7 @@ class _ProfileState extends State<Profile> {
   }
 
   DocumentReference _buildQuery() {
-    return FirebaseFirestore.instance.doc('users/${FirebaseAuth.instance.currentUser.uid}');
+    return FirebaseFirestore.instance.doc('users/$currentUserId');
   }
 
   Future<void> _fetchConversations() async {
@@ -44,6 +52,20 @@ class _ProfileState extends State<Profile> {
       showLoading = false;
       imageUrl = user.imageUrl;
     });
+  }
+
+  Future _selectPhoto() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final path = await Navigator.of(context).pushNamed('/take-picture', arguments: TakePictureArgs(cropImage: true)) as String;
+    if (path == null || path.trim().isEmpty) {
+      return;
+    }
+
+    final pathToUploadTo = '/users/$currentUserId/${p.basename(path)}';
+    final fileUrl = await _fileUploadingService.uploadFileAndGetUrl(path, pathToUploadTo: pathToUploadTo);
+
+    setState(() { imageUrl = fileUrl; });
+    await _saveImageUrlChanges();
   }
 
   Future _saveChanges() async {
@@ -66,11 +88,14 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  Future _selectPhoto() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    final String path = await Navigator.of(context).pushNamed('/take-picture');
-    if (path == null || path.trim().isEmpty) {
-      return;
+  Future _saveImageUrlChanges() async {
+    try {
+      final user = AppUser(imageUrl: imageUrl);
+      await _buildQuery().set(user.toMap(), SetOptions(merge: true));
+      Scaffold.of(context).showSnackBar(SnackBar(content: Text('Profile image updated')));
+
+    } catch (e) {
+      Scaffold.of(context).showSnackBar(SnackBar(content: Text('Profile image not updated')));
     }
   }
 
