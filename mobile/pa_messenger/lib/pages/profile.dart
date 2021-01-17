@@ -66,6 +66,14 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Future _selectPhoto() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final String path = await Navigator.of(context).pushNamed('/take-picture');
+    if (path == null || path.trim().isEmpty) {
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,11 +106,8 @@ class _ProfileState extends State<Profile> {
                   _aboutMe(),
                   SizedBox(height: 40),
 
-                  if (!showSaving)
-                    _save(),
-
-                  if (showSaving)
-                    CircularProgressIndicator(),
+                  if (!showSaving) _save(),
+                  if (showSaving) CircularProgressIndicator(),
                 ],
               );
             }
@@ -123,7 +128,7 @@ class _ProfileState extends State<Profile> {
       padding: EdgeInsets.all(8.0),
       child: Text('Change photo', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),),
     ),
-    onTap: () {},
+    onTap: () { _selectPhoto(); },
   );
 
   _name() => AppTextField(
