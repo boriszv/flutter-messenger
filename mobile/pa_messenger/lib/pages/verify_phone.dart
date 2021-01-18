@@ -20,6 +20,29 @@ class _VerifyPhoneState extends State<VerifyPhone> {
   final _codeController = TextEditingController();
   bool showLoading = false;
 
+  _verifyCode(BuildContext context) async {
+    if (_codeController.text == null || _codeController.text.isEmpty) {
+      return;
+    }
+
+    setState(() { showLoading = true; });
+
+    final args = ModalRoute.of(context).settings.arguments as VerifyPhoneArgs;
+    final credential = PhoneAuthProvider.credential(verificationId: args.verificationId, smsCode: _codeController.text);
+
+    try {
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+
+    } on FirebaseAuthException catch (e) {
+      await showOkDialog(context, title: 'An error occurred', content: e.message);
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+  
+    } finally {
+      setState(() { showLoading = false; });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,28 +75,5 @@ class _VerifyPhoneState extends State<VerifyPhone> {
         ),
       ),
     );
-  }
-
-  _verifyCode(BuildContext context) async {
-    if (_codeController.text == null || _codeController.text.isEmpty) {
-      return;
-    }
-
-    setState(() { showLoading = true; });
-
-    final args = ModalRoute.of(context).settings.arguments as VerifyPhoneArgs;
-    final credential = PhoneAuthProvider.credential(verificationId: args.verificationId, smsCode: _codeController.text);
-
-    try {
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
-
-    } on FirebaseAuthException catch (e) {
-      await showOkDialog(context, title: 'An error occurred', content: e.message);
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-  
-    } finally {
-      setState(() { showLoading = false; });
-    }
   }
 }

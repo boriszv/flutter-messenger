@@ -16,6 +16,38 @@ class _LoginState extends State<Login> {
   final _phoneNumberController = TextEditingController();
   bool showLoading = false;
 
+  _logIn(BuildContext context) {
+    if (_phoneNumberController.text == null || _phoneNumberController.text.isEmpty) {
+      return;
+    }
+
+    setState(() { showLoading = true; });
+
+    FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: _phoneNumberController.text,
+      verificationCompleted: (credential) async {
+        await showOkDialog(context, title: 'Success!', content: 'Phone authentication was successful');
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+
+        setState(() { showLoading = false; });
+      },
+      verificationFailed: (error) {
+        setState(() { showLoading = false; });
+        showOkDialog(context, 
+          title: 'An error occurred!',
+          content: error.message,
+        );
+      },
+      codeSent: (verificationId, forceResendingToken) {
+        setState(() { showLoading = false; });
+        Navigator.of(context).pushNamed('/verify-phone', arguments: VerifyPhoneArgs(verificationId));
+      },
+      codeAutoRetrievalTimeout: (verificationId) {  }
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,38 +81,6 @@ class _LoginState extends State<Login> {
           ],
         ),
       ),
-    );
-  }
-
-  _logIn(BuildContext context) {
-    if (_phoneNumberController.text == null || _phoneNumberController.text.isEmpty) {
-      return;
-    }
-
-    setState(() { showLoading = true; });
-
-    FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: _phoneNumberController.text,
-      verificationCompleted: (credential) async {
-        await showOkDialog(context, title: 'Success!', content: 'Phone authentication was successful');
-        await FirebaseAuth.instance.signInWithCredential(credential);
-
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
-
-        setState(() { showLoading = false; });
-      },
-      verificationFailed: (error) {
-        setState(() { showLoading = false; });
-        showOkDialog(context, 
-          title: 'An error occurred!',
-          content: error.message,
-        );
-      },
-      codeSent: (verificationId, forceResendingToken) {
-        setState(() { showLoading = false; });
-        Navigator.of(context).pushNamed('/verify-phone', arguments: VerifyPhoneArgs(verificationId));
-      },
-      codeAutoRetrievalTimeout: (verificationId) {  }
     );
   }
 }

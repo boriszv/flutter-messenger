@@ -2,10 +2,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:pa_messenger/pages/take_picture_preivew.dart';
 import 'package:pa_messenger/services/iimage_compressing_service.dart';
+import 'package:pa_messenger/services/iimage_cropping_service.dart';
 import 'package:pa_messenger/services/image_compressing_service.dart';
+import 'package:pa_messenger/services/image_cropping_service.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:image_cropper/image_cropper.dart';
 
 class TakePictureArgs {
   final bool cropImage;
@@ -22,6 +23,7 @@ class TakePicture extends StatefulWidget {
 class TakePictureState extends State<TakePicture> {
 
   static final IImageCompressingService _imageCompressor = ImageCompressingService();
+  static final IImageCroppingService _imageCroppingService = ImageCroppingService();
 
   CameraController _controller;
   Future<void> _initializeControllerFuture;
@@ -76,10 +78,9 @@ class TakePictureState extends State<TakePicture> {
       final args = ModalRoute.of(context).settings.arguments as TakePictureArgs;
 
       if (args.cropImage) {
-        final fileResult = await ImageCropper.cropImage(sourcePath: path, aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1));
-        if (fileResult == null) {
-          return;
-        }
+        final fileResult = await _imageCroppingService.cropImage(path, 1, 1);
+        if (fileResult == null) return;
+
         path = fileResult.path;
       }
 
