@@ -1,7 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:pa_messenger/utils/dialog_utils.dart';
+import 'package:pa_messenger/widgets/app_button.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class AddContact extends StatelessWidget {
+class AddContact extends StatefulWidget {
+  @override
+  _AddContactState createState() => _AddContactState();
+}
+
+class _AddContactState extends State<AddContact> {
+
+  bool isGranted = false;
+  bool showPermissionsLoading = false;
+
+  @override
+  void initState() { 
+    super.initState();
+    _checkPermissions();
+  }
+
+  _checkPermissions() async {
+    setState(() { showPermissionsLoading = true; });
+
+    final status = await Permission.contacts.status;
+
+    setState(() {
+      isGranted = status.isGranted;
+      showPermissionsLoading = false;
+    });
+  }
+
+  _requestPermissions() async {
+    final permission = Permission.contacts;
+
+    var status = await permission.status;
+    if (status.isPermanentlyDenied || status.isRestricted) {
+      await showOkDialog(context, title: 'Permission denied', content: 'You will have to enable the contact permission from settings for this to work');
+    }
+
+    if (status.isUndetermined || status.isDenied) {
+      status = await permission.request();
+    }
+
+    setState(() { isGranted = status.isGranted; });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -9,17 +53,36 @@ class AddContact extends StatelessWidget {
         backgroundColor: Colors.grey.shade900,
         title: Text('Select contact'),
         actions: [
-          IconButton(icon: Icon(Icons.search), onPressed: () {},)
+          if (isGranted)
+            IconButton(icon: Icon(Icons.search), onPressed: () {},)
         ],
       ),
-      body: ListView.builder(
-        itemBuilder: (context, index) {
-          return _ContactListItem();
+      body: Builder(
+        builder: (context) {
+          if (showPermissionsLoading) return Center(child: CircularProgressIndicator());
+          if (!isGranted) return _permissionDenied();
+
+          return ListView.builder(
+            itemBuilder: (context, index) {
+              return _ContactListItem();
+            },
+            itemCount: 22,
+          );
         },
-        itemCount: 22,
       ),
     );
   }
+
+  _permissionDenied() => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text('You cannot access this page without the Contacts permission', textAlign: TextAlign.center,),
+      PrimaryButton(
+        text: 'Request',
+        onPressed: () => _requestPermissions(),
+      )
+    ],
+  );
 }
 
 class _ContactListItem extends StatelessWidget {

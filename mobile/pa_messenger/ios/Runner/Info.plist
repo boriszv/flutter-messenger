@@ -43,5 +43,7 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Explanation on why the camera access is needed.</string>
+	<key>NSContactsUsageDescription</key>  
+	<string>Your description of why you are requesting permissions.</string>  
 </dict>
 </plist>
