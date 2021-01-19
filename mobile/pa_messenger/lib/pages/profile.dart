@@ -129,12 +129,12 @@ class _ProfileState extends State<Profile> {
     setState(() { showSaving = true; });
 
     try {
-      final user = AppUser(
-        bio: _aboutMeController.text,
-        name: _nameController.text,
-        imageUrl: imageUrl
-      );
-      await _buildQuery().set(user.toMap(), SetOptions(merge: true));
+      final user = {
+        'bio': _aboutMeController.text,
+        'name': _nameController.text,
+        'imageUrl': imageUrl
+      };
+      await _buildQuery().set(user, SetOptions(merge: true));
       Scaffold.of(context).showSnackBar(SnackBar(content: Text('Profile saved')));
 
     } catch (e) {
