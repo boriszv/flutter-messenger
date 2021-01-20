@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_contact/contacts.dart';
 import 'package:pa_messenger/utils/dialog_utils.dart';
 import 'package:pa_messenger/widgets/app_button.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_contact/contact.dart';
 
 class AddContact extends StatefulWidget {
   @override
@@ -11,24 +15,36 @@ class AddContact extends StatefulWidget {
 
 class _AddContactState extends State<AddContact> {
 
+  static final _searchController = TextEditingController();
+
   bool isGranted = false;
-  bool showPermissionsLoading = false;
+  bool showLoadingIndicator = false;
+  bool isSearching = false;
+
+  List<Contact> allContacts;
+  List<Contact> filteredContacts;
 
   @override
   void initState() { 
     super.initState();
     _checkPermissions();
+
+    _searchController.addListener(() {
+      _performSearch(_searchController.text);
+    });
   }
 
   _checkPermissions() async {
-    setState(() { showPermissionsLoading = true; });
+    setState(() { showLoadingIndicator = true; });
 
     final status = await Permission.contacts.status;
 
     setState(() {
       isGranted = status.isGranted;
-      showPermissionsLoading = false;
+      showLoadingIndicator = false;
     });
+
+    if (status.isGranted) await _fetchContacts();
   }
 
   _requestPermissions() async {
@@ -44,6 +60,40 @@ class _AddContactState extends State<AddContact> {
     }
 
     setState(() { isGranted = status.isGranted; });
+
+    if (status.isGranted) await _fetchContacts();
+  }
+
+  _fetchContacts() async {
+    setState(() { showLoadingIndicator = true; });
+    final contactsSource = Contacts.listContacts();
+
+    final contacts = <Contact>[];
+    while (await contactsSource.moveNext()) {
+      contacts.add(await contactsSource.current);
+    }
+
+    setState(() {
+      this.allContacts = contacts;
+      this.filteredContacts = contacts;
+      showLoadingIndicator = false;
+    });
+  }
+
+  _performSearch(String text) {
+    filteredContacts = allContacts;
+    setState(() {
+      filteredContacts = filteredContacts.where((x) => (x.displayName ?? '').toLowerCase().contains(text) || x.phones.any((x) => x.value.replaceAll(' ', '').contains(text))).toList();
+    });
+  }
+
+  _beginSearch() {
+    setState(() { isSearching = true; });
+  }
+
+  _stopSearch() {
+    _searchController.text = '';
+    setState(() { isSearching = false; });
   }
 
   @override
@@ -51,22 +101,46 @@ class _AddContactState extends State<AddContact> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.grey.shade900,
-        title: Text('Select contact'),
+        title: Builder(
+          builder: (context) {
+            if (!isSearching) return Text('Select contact');
+
+            return TextField(
+              controller: _searchController,
+              style: TextStyle(color: Colors.white),
+              cursorColor: Colors.white,
+              decoration: InputDecoration(
+                focusColor: Colors.white,
+                fillColor: Colors.white,
+                hintStyle: TextStyle(color: Colors.white),
+                hoverColor: Colors.white,
+                hintText: 'Search...'
+              ),
+            );
+          },
+        ),
         actions: [
-          if (isGranted)
-            IconButton(icon: Icon(Icons.search), onPressed: () {},)
+          if (isGranted && !isSearching)
+            IconButton(icon: Icon(Icons.search), onPressed: _beginSearch),
+          if (isSearching)
+            IconButton(icon: Icon(Icons.close), onPressed: _stopSearch,)
         ],
       ),
       body: Builder(
         builder: (context) {
-          if (showPermissionsLoading) return Center(child: CircularProgressIndicator());
+          if (showLoadingIndicator) return Center(child: CircularProgressIndicator());
           if (!isGranted) return _permissionDenied();
 
           return ListView.builder(
             itemBuilder: (context, index) {
-              return _ContactListItem();
+              if (filteredContacts[index].displayName == null) return Container();
+              return _ContactListItem(
+                name: filteredContacts[index].displayName,
+                imageBytes: filteredContacts[index].avatar,
+                phoneNumber: filteredContacts[index].phones.first.value,
+              );
             },
-            itemCount: 22,
+            itemCount: filteredContacts.length,
           );
         },
       ),
@@ -86,6 +160,17 @@ class _AddContactState extends State<AddContact> {
 }
 
 class _ContactListItem extends StatelessWidget {
+
+  final String name;
+  final String phoneNumber;
+  final Uint8List imageBytes;
+
+  _ContactListItem({
+    @required this.name,
+    @required this.imageBytes,
+    @required this.phoneNumber
+  });
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -99,16 +184,14 @@ class _ContactListItem extends StatelessWidget {
           children: [
             Row(
               children: [
-                _image(),
-                Padding(
-                  padding: EdgeInsets.only(left: 14.0),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _title(context, 'Aleksandra Stankovic'),
-                        Container(height: 4),
-                        _latestMessageText(context, 'Hey there I use this app!')
-                      ]),
+                _image(context),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _title(context, name),
+                    _phoneNumber(context, phoneNumber)
+                  ],
                 ),
               ],
             ),
@@ -118,11 +201,17 @@ class _ContactListItem extends StatelessWidget {
     );
   }
 
-  _image() => AppRoundImage(
-        'https://thispersondoesnotexist.com/image',
-        width: 35,
-        height: 35,
-      );
+  _image(BuildContext context) {
+    if (imageBytes == null) {
+      return Container(child: Icon(Icons.account_circle, size: 35, color: Colors.grey.shade900));
+    }
+
+    return AppRoundImage.memory(
+      imageBytes,
+      width: 35,
+      height: 35,
+    );
+  }
 
   _title(BuildContext context, String text) {
     return Text(text,
@@ -132,7 +221,7 @@ class _ContactListItem extends StatelessWidget {
             .apply(fontSizeDelta: -3, fontWeightDelta: 3));
   }
 
-  _latestMessageText(BuildContext context, String text) {
+  _phoneNumber(BuildContext context, String text) {
     return Text(text, style: Theme.of(context).textTheme.caption.apply(fontSizeDelta: -2));
   }
 }

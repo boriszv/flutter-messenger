@@ -192,7 +192,7 @@ class _ProfileState extends State<Profile> {
     splashColor: Colors.transparent,
     highlightColor: Colors.transparent,
     onTap: () => _selectPhoto(),
-    child: AppRoundImage(
+    child: AppRoundImage.url(
       imageUrl,
       width: 80,
       height: 80,

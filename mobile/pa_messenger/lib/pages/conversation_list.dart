@@ -156,11 +156,11 @@ class _ConversationListItem extends StatelessWidget {
     );
   }
 
-  _image(String imageUrl) => AppRoundImage(
-        imageUrl,
-        width: 60,
-        height: 60,
-      );
+  _image(String imageUrl) => AppRoundImage.url(
+    imageUrl,
+    width: 60,
+    height: 60,
+  );
 
   _title(BuildContext context, String text) {
     return Text(text,
