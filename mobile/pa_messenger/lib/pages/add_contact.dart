@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contact/contacts.dart';
 import 'package:pa_messenger/utils/dialog_utils.dart';
@@ -80,6 +81,20 @@ class _AddContactState extends State<AddContact> {
     });
   }
 
+  _addContactIfExists(Contact contact) async {
+    final result = await FirebaseFirestore.instance.collection('users').where('phoneNumber', whereIn: contact.phones.map((x) => x.value).toList()).get();
+    if (result.size == 0) {
+      final invite = await showYesNoDialog(context,
+        title: 'Contact ${contact.displayName} is not using this app',
+        content: 'Would you like to invite them?',
+      );
+      // TOOD Add invite logic
+      return;
+    }
+
+    // TODO Create conversation
+  }
+
   _performSearch(String text) {
     filteredContacts = allContacts;
     setState(() {
@@ -138,6 +153,9 @@ class _AddContactState extends State<AddContact> {
                 name: filteredContacts[index].displayName,
                 imageBytes: filteredContacts[index].avatar,
                 phoneNumber: filteredContacts[index].phones.first.value,
+                onTap: () {
+                  _addContactIfExists(filteredContacts[index]);
+                },
               );
             },
             itemCount: filteredContacts.length,
@@ -164,17 +182,19 @@ class _ContactListItem extends StatelessWidget {
   final String name;
   final String phoneNumber;
   final Uint8List imageBytes;
+  final Function onTap;
 
   _ContactListItem({
     @required this.name,
     @required this.imageBytes,
-    @required this.phoneNumber
+    @required this.phoneNumber,
+    @required this.onTap
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       child: Padding(
         padding: EdgeInsets.all(10.0),
         child: Row(
