@@ -9,6 +9,8 @@ export const onMessageCreated = functions.firestore
   .document('conversations/{conversationId}/messages/{messageId}')
   .onCreate(async (snapshot, context) => {
     const conversationId = context.params.conversationId;
+    const messageId = context.params.messageId;
+
     const body = snapshot.data() as Message;
 
     const conversationPatch: Partial<Conversation> = {
@@ -17,5 +19,12 @@ export const onMessageCreated = functions.firestore
       latestMessageSentBy: body.userId
     };
 
-    await db.doc(`conversations/${conversationId}`).update(conversationPatch);
+    const messageToPatch: Partial<Message> = {
+      createTime: snapshot.createTime
+    };
+
+    await Promise.all([
+      db.doc(`conversations/${conversationId}`).update(conversationPatch),
+      db.doc(`conversations/${conversationId}/messages/${messageId}`).update(messageToPatch),
+    ]);
   });

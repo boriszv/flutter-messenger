@@ -21,6 +21,12 @@ export const seedData = functions.https.onRequest(async (req, res) => {
   res.send({ success: true });
 });
 
+export const deleteAllAuthUsers = functions.https.onRequest(async (req, res) => {
+  const users = await auth.listUsers();
+  const promises = users.users.map(x => auth.deleteUser(x.uid));
+  await Promise.all(promises);
+  res.send({ success: true });
+});
 
 const seedUsers = async () => {
   const promises = [createUser('Boris Zivkovic', '+1 202-555-0155')];
@@ -32,7 +38,6 @@ const seedUsers = async () => {
 
   return await Promise.all(promises);
 };
-
 
 const seedConversationsAndMessages = async (users: UserWithId[]): Promise<ConversationWithId[]> => {
   const mainUser = users[0]; // our user - Boris
