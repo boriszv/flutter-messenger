@@ -91,10 +91,12 @@ const createUser = async (name: string, phoneNumber: string): Promise<UserWithId
     password: 'pass123'
   });
 
+  const images = [faker.image.abstract(150, 150), faker.image.animals(150, 150), faker.image.business(150, 150), faker.image.cats(150, 150), faker.image.city(150, 150), faker.image.food(150, 150), faker.image.nightlife(150, 150), faker.image.fashion(150, 150), faker.image.people(150, 150), faker.image.nature(150, 150), faker.image.sports(150, 150), faker.image.technics(150, 150), faker.image.transport(150, 150)];
+
   const userToInsert: User = {
     phoneNumber: phoneNumber,
     name: name,
-    imageUrl: faker.image.imageUrl(),
+    imageUrl: images[Math.floor(Math.random() * 10)],
     bio: faker.lorem.sentences(3)
   };
 
