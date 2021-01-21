@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'conversationUser.dart';
 
 class Conversation {
+
+  String id = '';
+
   List<ConversationUser> users;
   List<String> userIds;
   String latestMessage;
@@ -10,6 +13,7 @@ class Conversation {
   String latestMessageSentBy;
 
   Conversation({
+    this.id,
     this.users,
     this.userIds,
     this.latestMessage,
@@ -19,6 +23,7 @@ class Conversation {
 
   factory Conversation.fromMap(Map<String, dynamic> map) {
     return Conversation(
+      id: map['id'],
       users: ConversationUser.fromMapList(map['users']),
       userIds: List<String>.from(map['userIds']),
       latestMessage: map['latestMessage'],

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pa_messenger/models/conversation.dart';
+import 'package:pa_messenger/pages/chat.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 
 class ConversationList extends StatefulWidget {
@@ -44,7 +45,7 @@ class _ConversationListState extends State<ConversationList> {
     final result = await _buildQuery().get();
 
     setState(() {
-      conversations = Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
+      conversations = Conversation.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
       if (conversations.length != 0) {
         lastDocument = result.docs.last;
       }
@@ -56,7 +57,7 @@ class _ConversationListState extends State<ConversationList> {
     setState(() { isLoadingMore = true; });
 
     final result = await _buildQuery(startAfter: lastDocument).get();
-    final newConversations = Conversation.fromMapList(result.docs.map((x) => x.data()).toList());
+    final newConversations = Conversation.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
 
     setState(() {
       if (newConversations.length != 0) {
@@ -126,7 +127,9 @@ class _ConversationListItem extends StatelessWidget {
     final otherUser = conversation.users.firstWhere((x) => x.userId != FirebaseAuth.instance.currentUser.uid);
 
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        Navigator.of(context).pushNamed('/chat', arguments: ChatArgs(conversation));
+      },
       child: Padding(
         padding: EdgeInsets.all(10.0),
         child: Row(

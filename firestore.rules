@@ -16,8 +16,8 @@ service cloud.firestore {
     }
 
     match /conversations/{conversationId}/messages/{messageId} {
-      allow read: if request.auth.uid in get(/databases/$(database)/conversations/$(conversationId)).data.userIds;
-      allow create: if request.auth.uid in get(/databases/$(database)/conversations/$(conversationId)).data.userIds
+      allow read: if request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.userIds;
+      allow create: if request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.userIds
                        && request.auth.uid == request.resource.data.userId;
       allow update, delete: if false;
     }
