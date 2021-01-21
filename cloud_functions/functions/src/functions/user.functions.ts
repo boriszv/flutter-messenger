@@ -5,6 +5,18 @@ import { User } from '../models/user';
 
 const db = admin.firestore();
 
+export const onUserCreated = functions.firestore
+  .document('users/{userId}')
+  .onCreate(async (snapshot, context) => {
+    const body = snapshot.data() as User;
+
+    const userToUpdate: Partial<User> = {
+      phoneNumber: body.phoneNumber?.replace(' ', '')
+    };
+    await snapshot.ref.update(userToUpdate);
+  });
+
+
 export const onUserUpdated = functions.firestore
   .document('users/{userId}')
   .onUpdate(async (snapshot, context) => {
