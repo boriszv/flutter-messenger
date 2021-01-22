@@ -29,11 +29,11 @@ export const deleteAllAuthUsers = functions.https.onRequest(async (req, res) => 
 });
 
 const seedUsers = async () => {
-  const promises = [createUser('Boris Zivkovic', '+1 202-555-0155')];
+  const promises = [createUser('Boris Zivkovic', '+12025550155')];
 
   let userCount = 15;
   while (userCount--) {
-    promises.push(createUser(`${faker.name.firstName()} ${faker.name.lastName()}`, faker.phone.phoneNumber('+1 !##-!##-####')));
+    promises.push(createUser(`${faker.name.firstName()} ${faker.name.lastName()}`, faker.phone.phoneNumber('+1!##!######')));
   }
 
   return await Promise.all(promises);

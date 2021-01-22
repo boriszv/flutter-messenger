@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contact/contacts.dart';
+import 'package:pa_messenger/pages/chat.dart';
 import 'package:pa_messenger/utils/dialog_utils.dart';
 import 'package:pa_messenger/widgets/app_button.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
@@ -86,12 +88,14 @@ class _AddContactState extends State<AddContact> {
   _addContactIfExists(Contact contact) async {
     setState(() { isCheckingIfContactExists = true; });
 
-    final phones = contact.phones.map((x) => x.value.replaceAll(' ', '')).toList();
-    final result = await FirebaseFirestore.instance.collection('users').where('phoneNumber', whereIn: phones).get();
+    final phones = contact.phones.map((x) => 
+      x.value.replaceAll(' ', '').replaceAll('-', '')
+    ).toList();
+    final userResult = await FirebaseFirestore.instance.collection('users').where('phoneNumber', whereIn: phones).get();
 
     setState(() { isCheckingIfContactExists = false; });
 
-    if (result.size == 0) {
+    if (userResult.size == 0) {
       final invite = await showYesNoDialog(context,
         title: 'Contact ${contact.displayName} is not using this app',
         content: 'Would you like to invite them?',
@@ -100,7 +104,25 @@ class _AddContactState extends State<AddContact> {
       return;
     }
 
-    // TODO Create conversation
+    final userIds = [userResult.docs.first.id, FirebaseAuth.instance.currentUser.uid]..sort((a, b) => a.compareTo(b));
+    final userIdsHash = userIds.join('');
+
+    final conversationResult = await FirebaseFirestore.instance
+      .collection('conversations')
+      .where('userIdsHash', isEqualTo: userIdsHash)
+      .where('userIds', arrayContains: FirebaseAuth.instance.currentUser.uid)
+      .get();
+
+    if (conversationResult.docs.isNotEmpty) {
+      await showOkDialog(context,
+        title: 'Existing converastion',
+        content: 'You already have a conversation with this user',
+      );
+      return;
+    }
+
+    final args = ChatArgs(chatType: ChatType.CreateConversation, userToSendMessageToId: userResult.docs.first.id);
+    Navigator.of(context).pushNamed('/chat', arguments: args);
   }
 
   _performSearch(String text) {

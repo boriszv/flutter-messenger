@@ -7,9 +7,18 @@ import 'package:flutter/scheduler.dart';
 import 'package:pa_messenger/models/conversation.dart';
 import 'package:pa_messenger/models/message.dart';
 
+enum ChatType {
+  Default,
+  CreateConversation,
+}
+
 class ChatArgs {
   Conversation conversation;
-  ChatArgs(this.conversation);
+
+  ChatType chatType;
+  String userToSendMessageToId;
+
+  ChatArgs({this.conversation, this.chatType = ChatType.Default, this.userToSendMessageToId});
 }
 
 class Chat extends StatefulWidget {
@@ -34,14 +43,18 @@ class _ChatState extends State<Chat> {
 
   QueryDocumentSnapshot lastDocument;
 
+  ChatArgs args;
+
   @override
   void initState() {
     super.initState();
     SchedulerBinding.instance.addPostFrameCallback((_) {
+
       setState(() {
-        conversation = (ModalRoute.of(context).settings.arguments as ChatArgs).conversation;
+        args = ModalRoute.of(context).settings.arguments as ChatArgs;
+        conversation = args.conversation;
       });
-      _fetchMessages();
+      if (args.chatType == ChatType.Default) _fetchMessages();
     });
   }
 
@@ -73,6 +86,8 @@ class _ChatState extends State<Chat> {
   }
 
   Future<void> _fetchMoreMessages() async {
+    if (args.chatType != ChatType.Default) return;
+
     setState(() { isLoadingMore = true; });
 
     final result = await _buildQuery(startAfter: lastDocument).get();
@@ -90,14 +105,49 @@ class _ChatState extends State<Chat> {
     });
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendClicked() async {
+    switch (args.chatType) {
+      case ChatType.Default:
+        await _sendMessage(args.conversation.id);
+        break;
+      case ChatType.CreateConversation:
+        await _createConversation();
+        break;
+    }
+  }
+
+  Future<void> _sendMessage(String conversationId) async {
+    final messageText = _controller.text; 
+    _controller.clear();
+
     await FirebaseFirestore.instance
-      .collection('conversations/${conversation.id}/messages')
+      .collection('conversations/$conversationId/messages')
       .add({
-        'messageText': _controller.text,
+        'messageText': messageText,
         'userId': FirebaseAuth.instance.currentUser.uid,
         'createTime': Timestamp.now() // this is sent only so it's recieved quick by clients - this field is set to a correct time by a cloud function
       });
+  }
+
+  Future<void> _createConversation() async {
+    final reference = await FirebaseFirestore.instance.collection('conversations').add({
+      'userIds': [FirebaseAuth.instance.currentUser.uid, args.userToSendMessageToId],
+    });
+
+    await _sendMessage(reference.id);
+
+    final map = (await reference.get()).data();
+    final conversation = Conversation.fromMap(map);
+    conversation.id = reference.id;
+
+    setState(() {
+      args = ChatArgs(
+        conversation: conversation,
+        chatType: ChatType.Default,
+      );
+      this.conversation = conversation;
+    });
+    await _fetchMessages();
   }
 
   @override
@@ -125,9 +175,8 @@ class _ChatState extends State<Chat> {
                   child: ListView.builder(
                     reverse: true,
                     itemBuilder: (context, index) {
-                      if (index != messages.length) {
-                        return _MessageItem(messages[index]);
-                      }
+                      if (index != messages.length) return _MessageItem(messages[index]);
+                      if (args.chatType != ChatType.Default || loadedAll) return Container();
 
                       return Center(child: CircularProgressIndicator());
                     },
@@ -135,9 +184,7 @@ class _ChatState extends State<Chat> {
                   ),
                 ),
 
-                _ChatTextField(_controller, onSubmitted: () {
-                  _sendMessage(); 
-                }),
+                _ChatTextField(_controller, onSubmitted: () { _sendClicked(); }),
               ],
             ),
           );
@@ -215,7 +262,6 @@ class _ChatTextField extends StatelessWidget {
           IconButton(
             onPressed: () {
               onSubmitted();
-              _controller.clear();
             },
             icon: Icon(Icons.send, color: Theme.of(context).primaryColor,),
           )

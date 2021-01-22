@@ -138,13 +138,14 @@ class _ConversationListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final otherUser = conversation.users.firstWhere((x) => x.userId != FirebaseAuth.instance.currentUser.uid);
     
+    var latestMessage = conversation.latestMessage;
     if (conversation.latestMessageSentBy == FirebaseAuth.instance.currentUser.uid) {
-      conversation.latestMessage = 'You: ' + conversation.latestMessage;
+      latestMessage = 'You: ' + conversation.latestMessage;
     }
 
     return InkWell(
       onTap: () {
-        Navigator.of(context).pushNamed('/chat', arguments: ChatArgs(conversation));
+        Navigator.of(context).pushNamed('/chat', arguments: ChatArgs(conversation: conversation));
       },
       child: Padding(
         padding: EdgeInsets.all(10.0),
@@ -163,7 +164,7 @@ class _ConversationListItem extends StatelessWidget {
                       children: [
                         _title(context, otherUser.userName),
                         Container(height: 2),
-                        _latestMessageText(context, conversation.latestMessage)
+                        _latestMessageText(context, latestMessage)
                       ]),
                 ),
               ],

@@ -24,8 +24,8 @@ class Conversation {
   factory Conversation.fromMap(Map<String, dynamic> map) {
     return Conversation(
       id: map['id'],
-      users: ConversationUser.fromMapList(map['users']),
-      userIds: List<String>.from(map['userIds']),
+      users: ConversationUser.fromMapList(map['users'] ?? []),
+      userIds: List<String>.from(map['userIds'] ?? []),
       latestMessage: map['latestMessage'],
       latestMessageTimestamp: map['latestMessageTimestamp'],
       latestMessageSentBy: map['latestMessageSentBy'],

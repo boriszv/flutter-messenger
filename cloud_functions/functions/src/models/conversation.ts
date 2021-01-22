@@ -1,6 +1,7 @@
 export class Conversation {
   users: ConversationUser[] = [];
   userIds: string[] = [];
+  userIdsHash?: string = '';
   latestMessage?: string | undefined;
   latestMessageTimestamp?: FirebaseFirestore.Timestamp | undefined;
   latestMessageSentBy?: string | undefined;
