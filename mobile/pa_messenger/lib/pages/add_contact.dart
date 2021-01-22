@@ -81,8 +81,16 @@ class _AddContactState extends State<AddContact> {
     });
   }
 
+  var isCheckingIfContactExists = false;
+
   _addContactIfExists(Contact contact) async {
-    final result = await FirebaseFirestore.instance.collection('users').where('phoneNumber', whereIn: contact.phones.map((x) => x.value).toList()).get();
+    setState(() { isCheckingIfContactExists = true; });
+
+    final phones = contact.phones.map((x) => x.value.replaceAll(' ', '')).toList();
+    final result = await FirebaseFirestore.instance.collection('users').where('phoneNumber', whereIn: phones).get();
+
+    setState(() { isCheckingIfContactExists = false; });
+
     if (result.size == 0) {
       final invite = await showYesNoDialog(context,
         title: 'Contact ${contact.displayName} is not using this app',
@@ -148,11 +156,11 @@ class _AddContactState extends State<AddContact> {
 
           return ListView.builder(
             itemBuilder: (context, index) {
-              if (filteredContacts[index].displayName == null) return Container();
+              if (filteredContacts[index].displayName == null || filteredContacts[index].phones.isEmpty) return Container();
               return _ContactListItem(
                 name: filteredContacts[index].displayName,
                 imageBytes: filteredContacts[index].avatar,
-                phoneNumber: filteredContacts[index].phones.first.value,
+                phoneNumber: filteredContacts[index].phones.first.value ?? '',
                 onTap: () {
                   _addContactIfExists(filteredContacts[index]);
                 },

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +15,10 @@ class ConversationList extends StatefulWidget {
 
 class _ConversationListState extends State<ConversationList> {
 
-  List<Conversation> conversations = [];
+  List<Conversation> firstPageOfConversations = [];
+  List<Conversation> otherPagesOfConversations = [];
+  List<Conversation> get conversations => [...firstPageOfConversations, ...otherPagesOfConversations];
+
   bool showLoading = false;
   bool isLoadingMore = false;
   bool loadedAll = false;
@@ -39,17 +44,18 @@ class _ConversationListState extends State<ConversationList> {
     return query.limit(10);
   }
 
+  StreamSubscription<QuerySnapshot> subscription;
+
   Future<void> _fetchConversations() async {
     setState(() { showLoading = true; });
-
-    final result = await _buildQuery().get();
-
-    setState(() {
-      conversations = Conversation.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
-      if (conversations.length != 0) {
-        lastDocument = result.docs.last;
-      }
-      showLoading = false;
+    subscription = _buildQuery().snapshots().listen((result) {
+      setState(() {
+        firstPageOfConversations = Conversation.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
+        if (conversations.length != 0) {
+          lastDocument = result.docs.last;
+        }
+        showLoading = false;
+      });
     });
   }
 
@@ -114,6 +120,12 @@ class _ConversationListState extends State<ConversationList> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    subscription?.cancel();
+  }
 }
 
 class _ConversationListItem extends StatelessWidget {
@@ -125,6 +137,10 @@ class _ConversationListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final otherUser = conversation.users.firstWhere((x) => x.userId != FirebaseAuth.instance.currentUser.uid);
+    
+    if (conversation.latestMessageSentBy == FirebaseAuth.instance.currentUser.uid) {
+      conversation.latestMessage = 'You: ' + conversation.latestMessage;
+    }
 
     return InkWell(
       onTap: () {

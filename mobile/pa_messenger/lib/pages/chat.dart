@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -18,8 +20,14 @@ class Chat extends StatefulWidget {
 
 class _ChatState extends State<Chat> {
 
+  final _controller = TextEditingController();
+
   Conversation conversation;
-  List<Message> messages = [];
+  List<Message> firstPageOfMessages = [];
+  List<Message> otherPagesOfMessages = [];
+
+  List<Message> get messages => [...firstPageOfMessages, ...otherPagesOfMessages];
+
   bool showLoading = false;
   bool isLoadingMore = false;
   bool loadedAll = false;
@@ -49,17 +57,18 @@ class _ChatState extends State<Chat> {
     return query.limit(10);
   }
 
+  StreamSubscription<QuerySnapshot> subscription;
   Future<void> _fetchMessages() async {
     setState(() { showLoading = true; });
 
-    final result = await _buildQuery().get();
-
-    setState(() {
-      messages = Message.fromMapList(result.docs.map((x) => x.data()).toList());
-      if (messages.length != 0) {
-        lastDocument = result.docs.last;
-      }
-      showLoading = false;
+    subscription = _buildQuery().snapshots().listen((result) {
+      setState(() {
+        firstPageOfMessages = Message.fromMapList(result.docs.map((x) => x.data()).toList());
+        if (firstPageOfMessages.length != 0) {
+          lastDocument = result.docs.last;
+        }
+        showLoading = false;
+      });
     });
   }
 
@@ -71,7 +80,7 @@ class _ChatState extends State<Chat> {
 
     setState(() {
       if (newMessages.length != 0) {
-        messages.addAll(newMessages);
+        otherPagesOfMessages.addAll(newMessages);
         lastDocument = result.docs.last;
 
       } else {
@@ -79,6 +88,16 @@ class _ChatState extends State<Chat> {
       }
       isLoadingMore = false;
     });
+  }
+
+  Future<void> _sendMessage() async {
+    await FirebaseFirestore.instance
+      .collection('conversations/${conversation.id}/messages')
+      .add({
+        'messageText': _controller.text,
+        'userId': FirebaseAuth.instance.currentUser.uid,
+        'createTime': Timestamp.now() // this is sent only so it's recieved quick by clients - this field is set to a correct time by a cloud function
+      });
   }
 
   @override
@@ -100,21 +119,37 @@ class _ChatState extends State<Chat> {
                 _fetchMoreMessages();
               }
             },
-            child: ListView.builder(
-              reverse: true,
-              itemBuilder: (context, index) {
-                if (index != messages.length) {
-                  return _MessageItem(messages[index]);
-                }
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    reverse: true,
+                    itemBuilder: (context, index) {
+                      if (index != messages.length) {
+                        return _MessageItem(messages[index]);
+                      }
 
-                return Center(child: CircularProgressIndicator());
-              },
-              itemCount: loadedAll ? messages.length : messages.length + 1,
+                      return Center(child: CircularProgressIndicator());
+                    },
+                    itemCount: loadedAll ? messages.length : messages.length + 1,
+                  ),
+                ),
+
+                _ChatTextField(_controller, onSubmitted: () {
+                  _sendMessage(); 
+                }),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  @override 
+  void dispose() {
+    super.dispose();
+    subscription.cancel();
   }
 }
 
@@ -142,6 +177,50 @@ class _MessageItem extends StatelessWidget {
         border: Border.all(color: Colors.grey, width: 1)
       ),
       child: Text(message.messageText),
+    );
+  }
+}
+
+class _ChatTextField extends StatelessWidget {
+
+  final TextEditingController _controller;
+  final Function onSubmitted;
+
+  _ChatTextField(this._controller, {this.onSubmitted});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, left: 10.0, bottom: 10.0),
+      child: Row(
+        children: <Widget>[
+          // IconButton(
+          //   onPressed: () {
+          //     // _selectImageHandler(vm);
+          //   },
+          //   icon: Icon(Icons.add_a_photo, color: Theme.of(context).primaryColor,),
+          // ),
+          Container(width: 4),
+          Flexible(
+            child: TextField(
+              keyboardType: TextInputType.multiline,
+              controller: _controller,
+              maxLines: null,
+              decoration: InputDecoration(
+                hintText: 'Send message',
+                isDense: true,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              onSubmitted();
+              _controller.clear();
+            },
+            icon: Icon(Icons.send, color: Theme.of(context).primaryColor,),
+          )
+        ],
+      ),
     );
   }
 }
