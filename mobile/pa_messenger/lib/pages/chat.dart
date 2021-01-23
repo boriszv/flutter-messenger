@@ -29,6 +29,8 @@ class Chat extends StatefulWidget {
 
 class _ChatState extends State<Chat> {
 
+  static const PAGE_SIZE = 10;
+
   final _controller = TextEditingController();
 
   Conversation conversation;
@@ -67,7 +69,7 @@ class _ChatState extends State<Chat> {
       query = query.startAfterDocument(startAfter);
     }
 
-    return query.limit(10);
+    return query.limit(PAGE_SIZE);
   }
 
   StreamSubscription<QuerySnapshot> subscription;
@@ -79,6 +81,9 @@ class _ChatState extends State<Chat> {
         firstPageOfMessages = Message.fromMapList(result.docs.map((x) => x.data()).toList());
         if (firstPageOfMessages.length != 0) {
           lastDocument = result.docs.last;
+        }
+        if (firstPageOfMessages.length != PAGE_SIZE) {
+          loadedAll = true;
         }
         showLoading = false;
       });
@@ -176,7 +181,7 @@ class _ChatState extends State<Chat> {
                     reverse: true,
                     itemBuilder: (context, index) {
                       if (index != messages.length) return _MessageItem(messages[index]);
-                      if (args.chatType != ChatType.Default || loadedAll) return Container();
+                      if (args != null && args.chatType != ChatType.Default || loadedAll) return Container();
 
                       return Center(child: CircularProgressIndicator());
                     },
@@ -261,6 +266,7 @@ class _ChatTextField extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
+              if (_controller.text == null || _controller.text.trim().isEmpty) return;
               onSubmitted();
             },
             icon: Icon(Icons.send, color: Theme.of(context).primaryColor,),
