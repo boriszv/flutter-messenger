@@ -4,8 +4,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pa_messenger/models/conversation.dart';
 import 'package:pa_messenger/models/message.dart';
+import 'package:pa_messenger/pages/take_picture.dart';
+import 'package:pa_messenger/services/file_uploading_service.dart';
+import 'package:pa_messenger/services/ifile_uploading_service.dart';
+import 'package:pa_messenger/services/iimage_compressing_service.dart';
+import 'package:pa_messenger/services/iimage_cropping_service.dart';
+import 'package:pa_messenger/services/image_compressing_service.dart';
+import 'package:pa_messenger/services/image_cropping_service.dart';
+import 'package:path/path.dart' as p;
 
 enum ChatType {
   Default,
@@ -29,6 +38,10 @@ class Chat extends StatefulWidget {
 
 class _ChatState extends State<Chat> {
 
+  static final IFileUploadingService _fileUploadingService = FileUploadingService();
+  static final IImageCroppingService _imageCroppingService = ImageCroppingService();
+  static final IImageCompressingService _imageCompressingService = ImageCompressingService();
+
   static const PAGE_SIZE = 10;
 
   final _controller = TextEditingController();
@@ -36,6 +49,8 @@ class _ChatState extends State<Chat> {
   Conversation conversation;
   List<Message> firstPageOfMessages = [];
   List<Message> otherPagesOfMessages = [];
+
+  final ImagePicker _picker = ImagePicker();
 
   List<Message> get messages => [...firstPageOfMessages, ...otherPagesOfMessages];
 
@@ -155,6 +170,75 @@ class _ChatState extends State<Chat> {
     await _fetchMessages();
   }
 
+  Future _selectPhoto() async {
+    await showModalBottomSheet(context: context, builder: (context) => BottomSheet(
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(leading: Icon(Icons.camera), title: Text('Camera'), onTap: () {
+            Navigator.of(context).pop();
+            _selectPhotoWithCamera();
+          }),
+          ListTile(leading: Icon(Icons.filter), title: Text('Pick a file'), onTap: () {
+            Navigator.of(context).pop();
+            _selectPhotoWithGallery();
+          }),
+        ],
+      ),
+      onClosing: () {},
+    ));
+  }
+
+  Future _selectPhotoWithCamera() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    final path = await Navigator.of(context).pushNamed('/take-picture', arguments: TakePictureArgs(cropImage: true, cropRatioX: 4, cropRatioY: 3)) as String;
+    if (path == null || path.trim().isEmpty) {
+      return;
+    }
+
+    await _uploadFile(path);
+  }
+
+  Future _selectPhotoWithGallery() async {
+    final pickedFile = await _picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+    if (pickedFile == null) {
+      return;
+    }
+
+    var file = await _imageCroppingService.cropImage(pickedFile.path, 4, 3);
+    if (file == null) {
+      return;
+    }
+
+    file = await _imageCompressingService.compressImagePath(file.path, 35);
+
+    await _uploadFile(file.path);
+  }
+
+  Future _uploadFile(String path) async {
+    final pathToUploadTo = '/users/${FirebaseAuth.instance.currentUser.uid}/${p.basename(path)}';
+    final fileUrl = await _fileUploadingService.uploadFileAndGetUrl(path, pathToUploadTo: pathToUploadTo);
+
+    final messageToCreate = {
+      'imageUrl': fileUrl,
+      'userId': FirebaseAuth.instance.currentUser.uid,
+      'createTime': Timestamp.now() // this is sent only so it's recieved quick by clients - this field is set to a correct time by a cloud function
+    };
+
+    if (_controller.text != null && _controller.text.trim().isNotEmpty) {
+      messageToCreate['messageText'] = _controller.text;
+      _controller.clear();
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('conversations/${conversation.id}/messages').add(messageToCreate);
+
+    } catch (e) {
+      Scaffold.of(context).showSnackBar(SnackBar(content: Text("Message wasn't sent")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,7 +273,7 @@ class _ChatState extends State<Chat> {
                   ),
                 ),
 
-                _ChatTextField(_controller, onSubmitted: () { _sendClicked(); }),
+                _ChatTextField(_controller, onSubmitted: () { _sendClicked(); }, onImageClick: () { _selectPhoto(); },),
               ],
             ),
           );
@@ -228,7 +312,18 @@ class _MessageItem extends StatelessWidget {
         color: Colors.grey.shade200,
         border: Border.all(color: Colors.grey, width: 1)
       ),
-      child: Text(message.messageText),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (message.imageUrl != null && message.imageUrl.trim().isNotEmpty) ...[
+            Image.network(message.imageUrl),
+            Container(height: 5),
+          ],
+
+          if (message.messageText != null && message.messageText.trim().isNotEmpty)
+            Text(message.messageText),
+        ],
+      ),
     );
   }
 }
@@ -237,8 +332,9 @@ class _ChatTextField extends StatelessWidget {
 
   final TextEditingController _controller;
   final Function onSubmitted;
+  final Function onImageClick;
 
-  _ChatTextField(this._controller, {this.onSubmitted});
+  _ChatTextField(this._controller, {this.onSubmitted, this.onImageClick});
 
   @override
   Widget build(BuildContext context) {
@@ -246,12 +342,12 @@ class _ChatTextField extends StatelessWidget {
       padding: const EdgeInsets.only(top: 10, left: 10.0, bottom: 10.0),
       child: Row(
         children: <Widget>[
-          // IconButton(
-          //   onPressed: () {
-          //     // _selectImageHandler(vm);
-          //   },
-          //   icon: Icon(Icons.add_a_photo, color: Theme.of(context).primaryColor,),
-          // ),
+          IconButton(
+            onPressed: () {
+              onImageClick();
+            },
+            icon: Icon(Icons.add_a_photo, color: Theme.of(context).primaryColor,),
+          ),
           Container(width: 4),
           Flexible(
             child: TextField(

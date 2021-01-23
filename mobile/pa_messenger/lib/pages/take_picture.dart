@@ -10,8 +10,10 @@ import 'package:path_provider/path_provider.dart';
 
 class TakePictureArgs {
   final bool cropImage;
+  final double cropRatioX;
+  final double cropRatioY;
 
-  TakePictureArgs({this.cropImage});
+  TakePictureArgs({this.cropImage, this.cropRatioX = 1, this.cropRatioY = 1,});
 }
 
 class TakePicture extends StatefulWidget {
@@ -78,7 +80,7 @@ class TakePictureState extends State<TakePicture> {
       final args = ModalRoute.of(context).settings.arguments as TakePictureArgs;
 
       if (args.cropImage) {
-        final fileResult = await _imageCroppingService.cropImage(path, 1, 1);
+        final fileResult = await _imageCroppingService.cropImage(path, args.cropRatioX, args.cropRatioY);
         if (fileResult == null) return;
 
         path = fileResult.path;

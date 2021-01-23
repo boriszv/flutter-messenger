@@ -19,6 +19,10 @@ export const onMessageCreated = functions.firestore
       latestMessageSentBy: body.userId
     };
 
+    if (!body.messageText && body.imageUrl) {
+      conversationPatch.latestMessage = 'Image';
+    }
+
     const messageToPatch: Partial<Message> = {
       createTime: snapshot.createTime
     };
