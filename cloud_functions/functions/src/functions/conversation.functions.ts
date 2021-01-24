@@ -16,7 +16,7 @@ export const onConversationCreated = functions.firestore
       const user: ConversationUser = {
         userId: x.id,
         userName: data.name,
-        imageUrl: data.imageUrl,
+        imageUrl: data.imageUrl
       };
       return user;
     }));

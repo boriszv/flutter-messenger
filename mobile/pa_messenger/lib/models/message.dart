@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
+  String id;
   String messageText;
   String imageUrl;
   String userId;
   Timestamp createTime;
 
   Message({
+    this.id,
     this.messageText,
     this.imageUrl,
     this.userId,
@@ -15,6 +17,7 @@ class Message {
 
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
+      id: map['id'],
       messageText: map['messageText'],
       imageUrl: map['imageUrl'],
       userId: map['userId'],

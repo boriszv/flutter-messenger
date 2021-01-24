@@ -14,9 +14,10 @@ export const onMessageCreated = functions.firestore
     const body = snapshot.data() as Message;
 
     const conversationPatch: Partial<Conversation> = {
+      latestMessageId: snapshot.id,
       latestMessage: body.messageText,
       latestMessageTimestamp: snapshot.createTime,
-      latestMessageSentBy: body.userId
+      latestMessageSentBy: body.userId,
     };
 
     if (!body.messageText && body.imageUrl) {

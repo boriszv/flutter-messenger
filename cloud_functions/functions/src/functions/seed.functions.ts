@@ -54,6 +54,7 @@ const seedConversationsAndMessages = async (users: UserWithId[]): Promise<Conver
         { userId: user.uid, userName: user.name, imageUrl: user.imageUrl }
       ],
       userIds: [mainUser.uid, user.uid],
+      seen: {}
     };
 
     const conversationReference = db.collection('conversations').doc();

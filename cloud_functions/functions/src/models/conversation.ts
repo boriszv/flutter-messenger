@@ -3,8 +3,10 @@ export class Conversation {
   userIds: string[] = [];
   userIdsHash?: string = '';
   latestMessage?: string | undefined;
+  latestMessageId?: string | undefined;
   latestMessageTimestamp?: FirebaseFirestore.Timestamp | undefined;
   latestMessageSentBy?: string | undefined;
+  seen: { [userId: string]: string } = {};
 }
 
 export class ConversationWithId extends Conversation {

@@ -187,20 +187,32 @@ class _ConversationListItem extends StatelessWidget {
         style: Theme.of(context)
             .textTheme
             .headline6
-            .apply(fontSizeDelta: -2, fontWeightDelta: 2));
+            .apply( fontSizeDelta: -2, fontWeightDelta: 2,));
   }
+
+  bool get didUserSee => conversation.latestMessageId == conversation.seen[FirebaseAuth.instance.currentUser.uid] || conversation.latestMessageSentBy == FirebaseAuth.instance.currentUser.uid;
 
   _latestMessageText(BuildContext context, String text) {
     return SizedBox(
       width: MediaQuery.of(context).size.width * 0.5,
-      child: Text(text, style: Theme.of(context).textTheme.caption, maxLines: 1, overflow: TextOverflow.ellipsis)
+      child: Text(text,
+        style: Theme.of(context).textTheme.caption.apply(
+          fontWeightDelta: didUserSee ? 0 : 4,
+          color: didUserSee ? Colors.grey.shade600 : Colors.black,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis
+      )
     );
   }
 
   _timestamp(BuildContext context, String timestamp) {
     return Padding(
       padding: EdgeInsets.only(top: 15.0, right: 4),
-      child: Text(timestamp, style: Theme.of(context).textTheme.caption),
+      child: Text(timestamp, style: Theme.of(context).textTheme.caption.apply(
+        fontWeightDelta: didUserSee ? 0 : 4,
+        color: didUserSee ? Colors.grey.shade600 : Colors.black,
+      )),
     );
   }
 

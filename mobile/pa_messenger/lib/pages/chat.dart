@@ -44,6 +44,8 @@ class _ChatState extends State<Chat> {
 
   static const PAGE_SIZE = 10;
 
+  final currentUserId = FirebaseAuth.instance.currentUser.uid;
+
   final _controller = TextEditingController();
 
   Conversation conversation;
@@ -93,7 +95,7 @@ class _ChatState extends State<Chat> {
 
     subscription = _buildQuery().snapshots().listen((result) {
       setState(() {
-        firstPageOfMessages = Message.fromMapList(result.docs.map((x) => x.data()).toList());
+        firstPageOfMessages = Message.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
         if (firstPageOfMessages.length != 0) {
           lastDocument = result.docs.last;
         }
@@ -102,6 +104,8 @@ class _ChatState extends State<Chat> {
         }
         showLoading = false;
       });
+
+      _markLatestMessageAsSeen();
     });
   }
 
@@ -111,7 +115,7 @@ class _ChatState extends State<Chat> {
     setState(() { isLoadingMore = true; });
 
     final result = await _buildQuery(startAfter: lastDocument).get();
-    final newMessages = Message.fromMapList(result.docs.map((x) => x.data()).toList());
+    final newMessages = Message.fromMapList(result.docs.map((x) => x.data()..addAll({'id': x.id})).toList());
 
     setState(() {
       if (newMessages.length != 0) {
@@ -144,14 +148,14 @@ class _ChatState extends State<Chat> {
       .collection('conversations/$conversationId/messages')
       .add({
         'messageText': messageText,
-        'userId': FirebaseAuth.instance.currentUser.uid,
+        'userId': currentUserId,
         'createTime': Timestamp.now() // this is sent only so it's recieved quick by clients - this field is set to a correct time by a cloud function
       });
   }
 
   Future<void> _createConversation() async {
     final reference = await FirebaseFirestore.instance.collection('conversations').add({
-      'userIds': [FirebaseAuth.instance.currentUser.uid, args.userToSendMessageToId],
+      'userIds': [currentUserId, args.userToSendMessageToId],
     });
 
     await _sendMessage(reference.id);
@@ -168,6 +172,12 @@ class _ChatState extends State<Chat> {
       this.conversation = conversation;
     });
     await _fetchMessages();
+  }
+
+  Future<void> _markLatestMessageAsSeen() async {
+    await FirebaseFirestore.instance.doc('conversations/${conversation.id}').update({
+      'seen.$currentUserId': messages.first.id
+    });
   }
 
   Future _selectPhoto() async {
@@ -217,12 +227,12 @@ class _ChatState extends State<Chat> {
   }
 
   Future _uploadFile(String path) async {
-    final pathToUploadTo = '/users/${FirebaseAuth.instance.currentUser.uid}/${p.basename(path)}';
+    final pathToUploadTo = '/users/$currentUserId/${p.basename(path)}';
     final fileUrl = await _fileUploadingService.uploadFileAndGetUrl(path, pathToUploadTo: pathToUploadTo);
 
     final messageToCreate = {
       'imageUrl': fileUrl,
-      'userId': FirebaseAuth.instance.currentUser.uid,
+      'userId': currentUserId,
       'createTime': Timestamp.now() // this is sent only so it's recieved quick by clients - this field is set to a correct time by a cloud function
     };
 
