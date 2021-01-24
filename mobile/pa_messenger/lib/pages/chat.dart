@@ -274,7 +274,7 @@ class _ChatState extends State<Chat> {
                   child: ListView.builder(
                     reverse: true,
                     itemBuilder: (context, index) {
-                      if (index != messages.length) return _MessageItem(messages[index]);
+                      if (index != messages.length) return _MessageItem(messages[index], conversation);
                       if (args != null && args.chatType != ChatType.Default || loadedAll) return Container();
 
                       return Center(child: CircularProgressIndicator());
@@ -301,20 +301,51 @@ class _ChatState extends State<Chat> {
 
 class _MessageItem extends StatelessWidget {
 
+  final Conversation conversation;
   final Message message;
 
-  _MessageItem(this.message);
+  _MessageItem(this.message, this.conversation);
 
   @override
   Widget build(BuildContext context) {
-    final margin = MediaQuery.of(context).size.width * 0.3;
-    
+    final currentUserId = FirebaseAuth.instance.currentUser.uid;
+    final isCurrentUserSender = currentUserId  == message.userId;
+    final otherUser = conversation.users.firstWhere((x) => x.userId != currentUserId);
+
     return Container(
       margin: EdgeInsets.only(
         top: 5,
         bottom: 5,
-        left: FirebaseAuth.instance.currentUser.uid == message.userId ? margin : 10,
-        right: FirebaseAuth.instance.currentUser.uid != message.userId ? margin : 10,
+        left: 10,
+        right: 10,
+      ),
+      child: Flex(
+        direction: Axis.vertical,
+        crossAxisAlignment: isCurrentUserSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          _ChatBubble(message),
+
+          if (message.id == conversation.seen[otherUser.userId]) ...[
+            Container(height: 5),
+            Text('Seen', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w400)),
+          ]
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+
+  final Message message;
+
+  _ChatBubble(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.7
       ),
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
