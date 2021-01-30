@@ -182,15 +182,15 @@ class _ConversationListItem extends StatelessWidget {
     height: 60,
   );
 
+  bool get didUserSee => conversation.latestMessageId == conversation.seen[FirebaseAuth.instance.currentUser.uid] || conversation.latestMessageSentBy == FirebaseAuth.instance.currentUser.uid;
+
   _title(BuildContext context, String text) {
     return Text(text,
         style: Theme.of(context)
             .textTheme
             .headline6
-            .apply( fontSizeDelta: -2, fontWeightDelta: 2,));
+            .apply(fontSizeDelta: -2, fontWeightDelta: didUserSee ? 1 : 2));
   }
-
-  bool get didUserSee => conversation.latestMessageId == conversation.seen[FirebaseAuth.instance.currentUser.uid] || conversation.latestMessageSentBy == FirebaseAuth.instance.currentUser.uid;
 
   _latestMessageText(BuildContext context, String text) {
     return SizedBox(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pa_messenger/models/conversation.dart';
+import 'package:pa_messenger/models/conversationUser.dart';
 import 'package:pa_messenger/models/message.dart';
 import 'package:pa_messenger/pages/take_picture.dart';
 import 'package:pa_messenger/services/file_uploading_service.dart';
@@ -14,6 +15,7 @@ import 'package:pa_messenger/services/iimage_compressing_service.dart';
 import 'package:pa_messenger/services/iimage_cropping_service.dart';
 import 'package:pa_messenger/services/image_compressing_service.dart';
 import 'package:pa_messenger/services/image_cropping_service.dart';
+import 'package:pa_messenger/widgets/app_round_image.dart';
 import 'package:path/path.dart' as p;
 
 enum ChatType {
@@ -49,6 +51,8 @@ class _ChatState extends State<Chat> {
   final _controller = TextEditingController();
 
   Conversation conversation;
+  ConversationUser otherUser;
+
   List<Message> firstPageOfMessages = [];
   List<Message> otherPagesOfMessages = [];
 
@@ -72,6 +76,7 @@ class _ChatState extends State<Chat> {
       setState(() {
         args = ModalRoute.of(context).settings.arguments as ChatArgs;
         conversation = args.conversation;
+        otherUser = conversation.users.firstWhere((x) => x.userId != FirebaseAuth.instance.currentUser.uid, orElse: () => null);
       });
       if (args.chatType == ChatType.Default) _fetchMessages();
     });
@@ -254,7 +259,16 @@ class _ChatState extends State<Chat> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.grey.shade900,
-        title: Text('Messages'),
+        title: Row(
+          children: [
+            if (otherUser.imageUrl != null && otherUser.imageUrl.trim().isNotEmpty) ...[
+              AppRoundImage.url(otherUser.imageUrl, height: 30, width: 30),
+              SizedBox(width: 15)
+            ],
+
+            Text(otherUser.userName)
+          ],
+        ),
       ),
       body: Builder(
         builder: (context) {
@@ -343,6 +357,9 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showImage = message.imageUrl != null && message.imageUrl.trim().isNotEmpty;
+    final showText = message.messageText != null && message.messageText.trim().isNotEmpty;
+
     return Container(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.7
@@ -356,12 +373,13 @@ class _ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (message.imageUrl != null && message.imageUrl.trim().isNotEmpty) ...[
+          if (showImage)
             Image.network(message.imageUrl),
-            Container(height: 5),
-          ],
 
-          if (message.messageText != null && message.messageText.trim().isNotEmpty)
+          if (showImage && showText)
+            Container(height: 5),
+
+          if (showText)
             Text(message.messageText),
         ],
       ),
