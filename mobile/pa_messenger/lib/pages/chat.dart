@@ -15,6 +15,7 @@ import 'package:pa_messenger/services/iimage_compressing_service.dart';
 import 'package:pa_messenger/services/iimage_cropping_service.dart';
 import 'package:pa_messenger/services/image_compressing_service.dart';
 import 'package:pa_messenger/services/image_cropping_service.dart';
+import 'package:pa_messenger/utils/time_utils.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 import 'package:path/path.dart' as p;
 
@@ -288,7 +289,9 @@ class _ChatState extends State<Chat> {
                   child: ListView.builder(
                     reverse: true,
                     itemBuilder: (context, index) {
-                      if (index != messages.length) return _MessageItem(messages[index], conversation);
+                      final previousMessage = index > 0 ? messages[index - 1] : null;
+
+                      if (index != messages.length) return _MessageItem(messages[index], previousMessage, conversation);
                       if (args != null && args.chatType != ChatType.Default || loadedAll) return Container();
 
                       return Center(child: CircularProgressIndicator());
@@ -317,14 +320,17 @@ class _MessageItem extends StatelessWidget {
 
   final Conversation conversation;
   final Message message;
+  final Message previousMessage;
 
-  _MessageItem(this.message, this.conversation);
+  _MessageItem(this.message, this.previousMessage, this.conversation);
 
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser.uid;
     final isCurrentUserSender = currentUserId  == message.userId;
     final otherUser = conversation.users.firstWhere((x) => x.userId != currentUserId);
+
+    final showTimestamp = previousMessage == null || previousMessage.userId != message.userId;
 
     return Container(
       margin: EdgeInsets.only(
@@ -337,7 +343,7 @@ class _MessageItem extends StatelessWidget {
         direction: Axis.vertical,
         crossAxisAlignment: isCurrentUserSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          _ChatBubble(message),
+          _ChatBubble(message, showTimestamp: showTimestamp, isCurrentUserSender: isCurrentUserSender),
 
           if (message.id == conversation.seen[otherUser.userId]) ...[
             Container(height: 5),
@@ -352,37 +358,48 @@ class _MessageItem extends StatelessWidget {
 class _ChatBubble extends StatelessWidget {
 
   final Message message;
+  final bool showTimestamp;
+  final bool isCurrentUserSender;
 
-  _ChatBubble(this.message);
+  _ChatBubble(this.message, {this.showTimestamp, this.isCurrentUserSender});
 
   @override
   Widget build(BuildContext context) {
     final showImage = message.imageUrl != null && message.imageUrl.trim().isNotEmpty;
     final showText = message.messageText != null && message.messageText.trim().isNotEmpty;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.7
-      ),
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Colors.grey.shade200,
-        border: Border.all(color: Colors.grey, width: 1)
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showImage)
-            Image.network(message.imageUrl),
+    return Column(
+      crossAxisAlignment: isCurrentUserSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.7
+          ),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade200,
+            border: Border.all(color: Colors.grey, width: 1)
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (showImage)
+                Image.network(message.imageUrl),
 
-          if (showImage && showText)
-            Container(height: 5),
+              if (showImage && showText)
+                Container(height: 5),
 
-          if (showText)
-            Text(message.messageText),
-        ],
-      ),
+              if (showText)
+                Text(message.messageText),
+            ],
+          ),
+        ),
+        if (showTimestamp) ...[
+          Container(height: 5),
+          Text(calculateTimestamp(message.createTime.toDate()), style: TextStyle(color: Colors.grey.shade600),),
+        ]
+      ],
     );
   }
 }

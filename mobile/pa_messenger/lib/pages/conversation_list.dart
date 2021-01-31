@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pa_messenger/models/conversation.dart';
 import 'package:pa_messenger/pages/chat.dart';
+import 'package:pa_messenger/utils/time_utils.dart';
 import 'package:pa_messenger/widgets/app_round_image.dart';
 
 class ConversationList extends StatefulWidget {
@@ -169,7 +170,7 @@ class _ConversationListItem extends StatelessWidget {
                 ),
               ],
             ),
-            _timestamp(context, _calculateTimestamp(conversation.latestMessageTimestamp.toDate()))
+            _timestamp(context, calculateTimestamp(conversation.latestMessageTimestamp.toDate()))
           ],
         ),
       ),
@@ -216,31 +217,4 @@ class _ConversationListItem extends StatelessWidget {
     );
   }
 
-  _calculateTimestamp(DateTime dateTime) {
-    var timestamp = 'Now';
-
-    final diff = DateTime.now().difference(dateTime);
-
-    if (diff.inDays >= 7) {
-      timestamp = '${dateTime.day}/${dateTime.month}';
-    }
-
-    if (dateTime.year != DateTime.now().year) {
-      timestamp = '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
-
-    if (diff.inDays == 1) {
-      timestamp = 'Yesterday';
-    } else if (diff.inDays > 1) {
-      timestamp = '${diff.inDays} days ago';
-    } else if (diff.inHours >= 1) {
-      timestamp = '${diff.inHours}h';
-    } else if (diff.inMinutes >= 1) {
-      timestamp = '${diff.inMinutes}m';
-    } else if (diff.inSeconds > 3) {
-      timestamp = '${diff.inSeconds}s';
-    }
-
-    return timestamp;
-  }
 }
