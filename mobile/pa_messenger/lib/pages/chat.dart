@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pa_messenger/models/conversation.dart';
 import 'package:pa_messenger/models/conversationUser.dart';
 import 'package:pa_messenger/models/message.dart';
+import 'package:pa_messenger/pages/fullscreen_image.dart';
 import 'package:pa_messenger/pages/take_picture.dart';
 import 'package:pa_messenger/services/file_uploading_service.dart';
 import 'package:pa_messenger/services/ifile_uploading_service.dart';
@@ -363,6 +364,10 @@ class _ChatBubble extends StatelessWidget {
 
   _ChatBubble(this.message, {this.showTimestamp, this.isCurrentUserSender});
 
+  _openFullscreenImage(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => FullscreenImage.url(message.imageUrl)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final showImage = message.imageUrl != null && message.imageUrl.trim().isNotEmpty;
@@ -385,7 +390,7 @@ class _ChatBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (showImage)
-                Image.network(message.imageUrl),
+                InkWell(child: Image.network(message.imageUrl), onTap: () => _openFullscreenImage(context)),
 
               if (showImage && showText)
                 Container(height: 5),
