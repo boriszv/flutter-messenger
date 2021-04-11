@@ -1,5 +1,5 @@
 export class User {
-  phoneNumber: string = '';
+  email: string = '';
   name: string = '';
   bio: string = '';
   imageUrl: string = '';

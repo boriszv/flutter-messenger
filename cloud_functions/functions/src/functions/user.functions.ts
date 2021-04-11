@@ -11,7 +11,7 @@ export const onUserCreated = functions.firestore
     const body = snapshot.data() as User;
 
     const userToUpdate: Partial<User> = {
-      phoneNumber: body.phoneNumber?.replace(' ', '')
+      email: body.email?.replace(' ', '')
     };
     await snapshot.ref.update(userToUpdate);
   });

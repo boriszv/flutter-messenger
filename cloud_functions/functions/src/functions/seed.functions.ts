@@ -29,11 +29,12 @@ export const deleteAllAuthUsers = functions.https.onRequest(async (req, res) => 
 });
 
 const seedUsers = async () => {
-  const promises = [createUser('Boris Zivkovic', '+12025550155')];
+  const promises = [createUser('Boris Zivkovic', 'boris@example.com')];
 
   let userCount = 15;
   while (userCount--) {
-    promises.push(createUser(`${faker.name.firstName()} ${faker.name.lastName()}`, faker.phone.phoneNumber('+1!##!######')));
+    const [firstName, lastName] = [faker.name.firstName(), faker.name.lastName()];
+    promises.push(createUser(`${firstName} ${lastName}`, faker.internet.email(firstName, lastName)));
   }
 
   return await Promise.all(promises);
@@ -85,9 +86,9 @@ const seedConversationsAndMessages = async (users: UserWithId[]): Promise<Conver
   return conversationsToReturn;
 };
 
-const createUser = async (name: string, phoneNumber: string): Promise<UserWithId> => {
+const createUser = async (name: string, email: string): Promise<UserWithId> => {
   const authUser = await auth.createUser({
-    phoneNumber: phoneNumber,
+    email: email,
     displayName: name,
     password: 'pass123'
   });
@@ -95,7 +96,7 @@ const createUser = async (name: string, phoneNumber: string): Promise<UserWithId
   const images = [faker.image.abstract(150, 150), faker.image.animals(150, 150), faker.image.business(150, 150), faker.image.cats(150, 150), faker.image.city(150, 150), faker.image.food(150, 150), faker.image.nightlife(150, 150), faker.image.fashion(150, 150), faker.image.people(150, 150), faker.image.nature(150, 150), faker.image.sports(150, 150), faker.image.technics(150, 150), faker.image.transport(150, 150)];
 
   const userToInsert: User = {
-    phoneNumber: phoneNumber,
+    email: email,
     name: name,
     imageUrl: images[Math.floor(Math.random() * 10)],
     bio: faker.lorem.sentences(3)
