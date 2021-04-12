@@ -25,7 +25,7 @@ class App extends StatelessWidget {
           ),
           routes: appRoutes,
           // initialRoute: '/phone-login',
-          initialRoute: FirebaseAuth.instance.currentUser != null ? '/' : '/phone-login',
+          initialRoute: FirebaseAuth.instance.currentUser != null ? '/' : '/email-login',
         );
       }
     );

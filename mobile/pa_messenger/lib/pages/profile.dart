@@ -52,7 +52,7 @@ class _ProfileState extends State<Profile> {
     setState(() { showLoading = true; });
 
     final result = await _buildQuery().get();
-    final user = AppUser.fromMap(result.data());
+    final user = AppUser.fromMap(result.id, result.data());
 
     _nameController.text = user.name;
     _aboutMeController.text = user.bio;

@@ -11,12 +11,12 @@ import 'package:pa_messenger/widgets/app_round_image.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contact/contact.dart';
 
-class AddContact extends StatefulWidget {
+class AddContactPhone extends StatefulWidget {
   @override
-  _AddContactState createState() => _AddContactState();
+  _AddContactPhoneState createState() => _AddContactPhoneState();
 }
 
-class _AddContactState extends State<AddContact> {
+class _AddContactPhoneState extends State<AddContactPhone> {
 
   static final _searchController = TextEditingController();
 

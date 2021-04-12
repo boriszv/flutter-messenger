@@ -3,7 +3,8 @@ import 'package:pa_messenger/pages/conversation_list.dart';
 import 'package:pa_messenger/pages/profile.dart';
 import 'package:pa_messenger/widgets/app_bottom_nav.dart';
 
-import 'add_contact.dart';
+import 'add_contact_email.dart';
+import 'add_contact_phone.dart';
 
 class AppContainer extends StatefulWidget {
   @override
@@ -26,7 +27,7 @@ class _AppContainerState extends State<AppContainer> {
           case 0:
             return ConversationList();
           case 1:
-            return AddContact();
+            return AddContactEmail();
           case 2:
             return Profile();
           default:

@@ -9,6 +9,7 @@ class AppTextField extends StatelessWidget {
   final int maxLines;
   final int minLines;
   final bool alignLabelWithHint;
+  final bool obscureText;
 
 
   AppTextField({
@@ -18,7 +19,8 @@ class AppTextField extends StatelessWidget {
     this.minLines = 1,
     this.maxLines,
     this.alignLabelWithHint = false,
-    this.controller
+    this.controller,
+    this.obscureText = false,
   });
 
   @override
@@ -29,6 +31,7 @@ class AppTextField extends StatelessWidget {
       keyboardType: keyboardType,
       minLines: minLines,
       maxLines: maxLines,
+      obscureText: obscureText,
       decoration: InputDecoration(
         filled: true,
         labelText: labelText,
