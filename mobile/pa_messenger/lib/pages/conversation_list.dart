@@ -89,7 +89,7 @@ class _ConversationListState extends State<ConversationList> {
             child: Icon(Icons.exit_to_app, color: Colors.white),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil('/phone-login', (route) => false);
             },
           )
         ],

@@ -24,8 +24,8 @@ class App extends StatelessWidget {
             visualDensity: VisualDensity.adaptivePlatformDensity,
           ),
           routes: appRoutes,
-          // initialRoute: '/login',
-          initialRoute: FirebaseAuth.instance.currentUser != null ? '/' : '/login',
+          // initialRoute: '/phone-login',
+          initialRoute: FirebaseAuth.instance.currentUser != null ? '/' : '/phone-login',
         );
       }
     );

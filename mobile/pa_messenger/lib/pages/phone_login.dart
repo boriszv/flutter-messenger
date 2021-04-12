@@ -5,13 +5,13 @@ import 'package:pa_messenger/utils/dialog_utils.dart';
 import 'package:pa_messenger/widgets/app_button.dart';
 import 'package:pa_messenger/widgets/app_text_field.dart';
 
-class Login extends StatefulWidget {
+class PhoneLogin extends StatefulWidget {
 
   @override
-  _LoginState createState() => _LoginState();
+  _PhoneLoginState createState() => _PhoneLoginState();
 }
 
-class _LoginState extends State<Login> {
+class _PhoneLoginState extends State<PhoneLogin> {
 
   final _phoneNumberController = TextEditingController();
   bool showLoading = false;

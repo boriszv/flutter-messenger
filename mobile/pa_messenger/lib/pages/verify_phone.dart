@@ -36,7 +36,7 @@ class _VerifyPhoneState extends State<VerifyPhone> {
 
     } on FirebaseAuthException catch (e) {
       await showOkDialog(context, title: 'An error occurred', content: e.message);
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil('/phone-login', (_) => false);
   
     } finally {
       setState(() { showLoading = false; });
